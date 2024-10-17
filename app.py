@@ -8,18 +8,31 @@ import tkinter as tk
 import tkinter.filedialog as fd
 from tkinter import ttk
 
-from PIL import Image, ImageOps, ImageTk
+from matplotlib import font_manager
+from PIL import Image, ImageColor, ImageDraw, ImageFont, ImageOps, ImageTk
 
-FONT = ""
-WATERMARK_BUTTON_WIDTH = 12
-IMAGE_SIZE = (500, 500)
+FONT_OPTIONS = [
+    "Arial",
+    "Baskerville",
+    "Courier New",
+    "Geneva",
+    "Helvetica",
+    "PT Sans",
+    "PT Serif",
+    "Tahoma",
+    "Times New Roman",
+    "Verdana",
+]
+WM_BUTTON_WIDTH = 12
+IMG_SIZE = (500, 500)
+WM_COLOR = (255, 255, 255, 128)
 
 
 class MainWindow(tk.Tk):
     def __init__(self) -> None:
         tk.Tk.__init__(self)
         self.title("Watermark Utility")
-        self.minsize(1000, 800)
+        self.minsize(600, 300)
         self.main_frame = MainFrame(parent=self)
 
     def adjust_window_size(self, img: ImageTk.PhotoImage):
@@ -30,31 +43,93 @@ class MainWindow(tk.Tk):
 
 class ImageUtility:
     def __init__(self) -> None:
+        self.wm_util = WatermarkUtility()
         self.img_og = None
-        self.img_wm = None
         self.img_og_rs = None
+        self.img_wm = None
         self.img_wm_rs = None
 
     def upload_img(self) -> None:
         fp = fd.askopenfilename(
             title="Select your image...",
             filetypes=[
-                ("JPG/JPEG", ("*.jpg", "*.jpeg")),
                 ("PNG", ("*.png")),
+                ("JPG/JPEG", ("*.jpg", "*.jpeg")),
                 ("All files", "*.*"),
             ],
         )
-        with Image.open(fp) as img:
+        with Image.open(fp).convert("RGBA") as img:
             self.img_og = img
             self.img_og_rs = ImageTk.PhotoImage(self.resize_image(img))
 
-    def make_image_wm(self, mode: str) -> None:
-        # Do something with the image, based on the selected watermark mode
-        self.img_wm = self.img_og
-        self.img_wm_rs = ImageTk.PhotoImage(self.resize_image(self.img_og))
+    def make_img_wm(self) -> None:
+        self.img_wm = self.wm_util.make_img_wm(self.img_og)
+        self.img_wm_rs = ImageTk.PhotoImage(self.resize_image(self.img_wm))
 
     def resize_image(self, img) -> Image.Image:
-        return ImageOps.contain(img, IMAGE_SIZE)
+        return ImageOps.contain(img, IMG_SIZE)
+
+
+class WatermarkUtility:
+    def __init__(
+        self,
+        text: str = "Watermark Utility",
+        font: str = "Arial",
+        size: int = 500,
+        mode: str = "bottom",
+    ) -> None:
+        self.text = text
+        self.fontname = font
+        self.fontsize = size
+        self.font = ImageFont.truetype(
+            font_manager.findfont(self.fontname), self.fontsize
+        )
+        self.mode = mode
+
+    def make_img_wm(self, img) -> None:
+        if self.mode == "middle":
+            img = self.create_wm(img, self.middle_wm(img))
+        elif self.mode == "bottom":
+            img = self.create_wm(img, self.bottom_wm(img))
+        elif self.mode == "both":
+            img = self.create_wm(img, self.middle_wm(img))
+            img = self.create_wm(img, self.bottom_wm(img))
+        else:
+            raise Exception(
+                "Sorry, this mode is not available. Try one of 'middle', 'bottom' or 'both'."
+            )
+
+        return img
+
+    def create_wm(self, img, txt):
+        return Image.alpha_composite(img, txt)
+
+    def middle_wm(self, img) -> Image.Image:
+        txt = self.wm_text(img)
+        d = ImageDraw.Draw(txt)
+        d.text(
+            xy=(img.width / 2, img.height / 2),
+            text=self.text,
+            font=self.font,
+            fill=WM_COLOR,
+            anchor="mm",
+        )
+        return txt
+
+    def bottom_wm(self, img) -> Image.Image:
+        txt = self.wm_text(img)
+        d = ImageDraw.Draw(txt)
+        d.text(
+            xy=(img.width - 10, img.height - 10),
+            text=self.text,
+            font=self.font,
+            fill=WM_COLOR,
+            anchor="rb",
+        )
+        return txt
+
+    def wm_text(self, img) -> Image.Image:
+        return Image.new("RGBA", img.size, (255, 255, 255, 0))
 
 
 class MainFrame(ttk.Frame):
@@ -111,20 +186,20 @@ class WatermarkFrame(ttk.Frame):
         # Row 1
         self.watermark1_btn = ttk.Button(
             self,
-            text="Watermark 1",
-            width=WATERMARK_BUTTON_WIDTH,
+            text="Middle",
+            width=WM_BUTTON_WIDTH,
             command=lambda: [
-                self.master.img_util.make_image_wm("mode 1"),
+                self.master.img_util.make_img_wm(),
                 self.master.update_img_wk(),
             ],
         )
         self.watermark1_btn.grid(column=0, row=1)
         self.watermark2_btn = ttk.Button(
             self,
-            text="Watermark 2",
-            width=WATERMARK_BUTTON_WIDTH,
+            text="Both",
+            width=WM_BUTTON_WIDTH,
             command=lambda: [
-                self.master.img_util.make_image_wm("mode 2"),
+                self.master.img_util.make_img_wm(),
                 self.master.update_img_wk(),
             ],
         )
@@ -133,10 +208,10 @@ class WatermarkFrame(ttk.Frame):
         # Row 2
         self.watermark3_btn = ttk.Button(
             self,
-            text="Watermark 3",
-            width=WATERMARK_BUTTON_WIDTH,
+            text="Bottom",
+            width=WM_BUTTON_WIDTH,
             command=lambda: [
-                self.master.img_util.make_image_wm("mode 3"),
+                self.master.img_util.make_img_wm(),
                 self.master.update_img_wk(),
             ],
         )
