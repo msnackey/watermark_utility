@@ -5,11 +5,11 @@
 # And/or give the ability to download the image
 
 import tkinter as tk
-import tkinter.filedialog as fd
-from tkinter import ttk
+from tkinter import StringVar, ttk
 
-from matplotlib import font_manager
-from PIL import Image, ImageColor, ImageDraw, ImageFont, ImageOps, ImageTk
+from PIL import ImageTk
+
+from utils import ImageUtility
 
 FONT_OPTIONS = [
     "Arial",
@@ -24,8 +24,6 @@ FONT_OPTIONS = [
     "Verdana",
 ]
 WM_BUTTON_WIDTH = 12
-IMG_SIZE = (500, 500)
-WM_COLOR = (255, 255, 255, 128)
 
 
 class MainWindow(tk.Tk):
@@ -39,97 +37,6 @@ class MainWindow(tk.Tk):
         self.minsize(
             width=int((2.1 * img.width() + 40)), height=int((1.1 * img.height() + 140))
         )
-
-
-class ImageUtility:
-    def __init__(self) -> None:
-        self.wm_util = WatermarkUtility()
-        self.img_og = None
-        self.img_og_rs = None
-        self.img_wm = None
-        self.img_wm_rs = None
-
-    def upload_img(self) -> None:
-        fp = fd.askopenfilename(
-            title="Select your image...",
-            filetypes=[
-                ("PNG", ("*.png")),
-                ("JPG/JPEG", ("*.jpg", "*.jpeg")),
-                ("All files", "*.*"),
-            ],
-        )
-        with Image.open(fp).convert("RGBA") as img:
-            self.img_og = img
-            self.img_og_rs = ImageTk.PhotoImage(self.resize_image(img))
-
-    def make_img_wm(self) -> None:
-        self.img_wm = self.wm_util.make_img_wm(self.img_og)
-        self.img_wm_rs = ImageTk.PhotoImage(self.resize_image(self.img_wm))
-
-    def resize_image(self, img) -> Image.Image:
-        return ImageOps.contain(img, IMG_SIZE)
-
-
-class WatermarkUtility:
-    def __init__(
-        self,
-        text: str = "Watermark Utility",
-        font: str = "Arial",
-        size: int = 500,
-        mode: str = "bottom",
-    ) -> None:
-        self.text = text
-        self.fontname = font
-        self.fontsize = size
-        self.font = ImageFont.truetype(
-            font_manager.findfont(self.fontname), self.fontsize
-        )
-        self.mode = mode
-
-    def make_img_wm(self, img) -> None:
-        if self.mode == "middle":
-            img = self.create_wm(img, self.middle_wm(img))
-        elif self.mode == "bottom":
-            img = self.create_wm(img, self.bottom_wm(img))
-        elif self.mode == "both":
-            img = self.create_wm(img, self.middle_wm(img))
-            img = self.create_wm(img, self.bottom_wm(img))
-        else:
-            raise Exception(
-                "Sorry, this mode is not available. Try one of 'middle', 'bottom' or 'both'."
-            )
-
-        return img
-
-    def create_wm(self, img, txt):
-        return Image.alpha_composite(img, txt)
-
-    def middle_wm(self, img) -> Image.Image:
-        txt = self.wm_text(img)
-        d = ImageDraw.Draw(txt)
-        d.text(
-            xy=(img.width / 2, img.height / 2),
-            text=self.text,
-            font=self.font,
-            fill=WM_COLOR,
-            anchor="mm",
-        )
-        return txt
-
-    def bottom_wm(self, img) -> Image.Image:
-        txt = self.wm_text(img)
-        d = ImageDraw.Draw(txt)
-        d.text(
-            xy=(img.width - 10, img.height - 10),
-            text=self.text,
-            font=self.font,
-            fill=WM_COLOR,
-            anchor="rb",
-        )
-        return txt
-
-    def wm_text(self, img) -> Image.Image:
-        return Image.new("RGBA", img.size, (255, 255, 255, 0))
 
 
 class MainFrame(ttk.Frame):
@@ -158,8 +65,8 @@ class MainFrame(ttk.Frame):
         self.spacer_right.grid(column=6, row=0, padx=(0, 10))
 
         # Row 1
-        self.watermark_frame = WatermarkFrame(parent=self)
-        self.watermark_frame.grid(column=1, row=1, sticky="NW", pady=(0, 20))
+        self.wm_frame = WatermarkFrame(parent=self)
+        self.wm_frame.grid(column=1, row=1, sticky="NW", pady=(0, 20))
 
         # Row 2
         self.img_og = ttk.Label(self, image=self.img_util.img_og_rs)
@@ -180,10 +87,19 @@ class WatermarkFrame(ttk.Frame):
         self.grid()
 
         # Row 0
-        self.watermark_label = ttk.Label(self, text="Choose watermark:")
+        self.watermark_label = ttk.Label(self, text="Watermark settings")
         self.watermark_label.grid(column=0, row=0)
 
         # Row 1
+        self.fontname = StringVar()
+        self.fontname_drop = ttk.Combobox(
+            self,
+            width=WM_BUTTON_WIDTH,
+            textvariable=self.fontname,
+            values=FONT_OPTIONS,
+        )
+        self.fontname_drop.grid(column=0, row=1)
+        self.fontname_drop.current(1)
         self.watermark1_btn = ttk.Button(
             self,
             text="Middle",
@@ -193,7 +109,7 @@ class WatermarkFrame(ttk.Frame):
                 self.master.update_img_wk(),
             ],
         )
-        self.watermark1_btn.grid(column=0, row=1)
+        self.watermark1_btn.grid(column=1, row=1)
         self.watermark2_btn = ttk.Button(
             self,
             text="Both",
@@ -203,9 +119,19 @@ class WatermarkFrame(ttk.Frame):
                 self.master.update_img_wk(),
             ],
         )
-        self.watermark2_btn.grid(column=1, row=1, padx=(6, 0))
+        self.watermark2_btn.grid(column=2, row=1, padx=(6, 0))
 
         # Row 2
+        self.fontsize = StringVar()
+        fontsize_options = ["Small", "Medium", "Large"]
+        self.wm_font_drop = ttk.Combobox(
+            self,
+            width=WM_BUTTON_WIDTH,
+            textvariable=self.fontsize,
+            values=fontsize_options,
+        )
+        self.wm_font_drop.grid(column=0, row=2)
+        self.wm_font_drop.current(1)
         self.watermark3_btn = ttk.Button(
             self,
             text="Bottom",
@@ -215,7 +141,10 @@ class WatermarkFrame(ttk.Frame):
                 self.master.update_img_wk(),
             ],
         )
-        self.watermark3_btn.grid(column=0, row=2)
+        self.watermark3_btn.grid(column=1, row=2)
+
+    def get_font_options(self) -> dict:
+        return dict([("fontname", self.fontname), ("fontsize", self.fontsize)])
 
 
 MainWindow().mainloop()
