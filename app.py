@@ -1,8 +1,5 @@
-# Let the user decide on a watermark design, give several options
-# Either automatically apply the watermark after an option has been selected, or create a button to apply the watermark
-
-# Show the watermarked image in the Tkinter window, on the right (with instructions to right-click and save)
-# And/or give the ability to download the image
+# TODO Give the option to enter a text
+# TODO Let user download the generated image
 
 import tkinter as tk
 from tkinter import StringVar, ttk
@@ -74,6 +71,13 @@ class MainFrame(ttk.Frame):
         self.img_wm = ttk.Label(self, image=self.img_util.img_wm_rs)
         self.img_wm.grid(column=4, columnspan=2, row=2)
 
+    def make_img_wm(self, mode) -> None:
+        font_options = self.wm_frame.get_font_options()
+        self.img_util.make_img_wm(
+            mode, font_options["fontname"], font_options["fontsize"]
+        )
+        self.update_img_wk()
+
     def update_img_og(self) -> None:
         self.img_og.config(image=self.img_util.img_og_rs)
 
@@ -104,20 +108,14 @@ class WatermarkFrame(ttk.Frame):
             self,
             text="Middle",
             width=WM_BUTTON_WIDTH,
-            command=lambda: [
-                self.master.img_util.make_img_wm(),
-                self.master.update_img_wk(),
-            ],
+            command=lambda: self.master.make_img_wm("middle"),
         )
         self.watermark1_btn.grid(column=1, row=1)
         self.watermark2_btn = ttk.Button(
             self,
             text="Both",
             width=WM_BUTTON_WIDTH,
-            command=lambda: [
-                self.master.img_util.make_img_wm(),
-                self.master.update_img_wk(),
-            ],
+            command=lambda: self.master.make_img_wm("both"),
         )
         self.watermark2_btn.grid(column=2, row=1, padx=(6, 0))
 
@@ -136,15 +134,17 @@ class WatermarkFrame(ttk.Frame):
             self,
             text="Bottom",
             width=WM_BUTTON_WIDTH,
-            command=lambda: [
-                self.master.img_util.make_img_wm(),
-                self.master.update_img_wk(),
-            ],
+            command=lambda: self.master.make_img_wm("bottom"),
         )
         self.watermark3_btn.grid(column=1, row=2)
 
     def get_font_options(self) -> dict:
-        return dict([("fontname", self.fontname), ("fontsize", self.fontsize)])
+        return dict(
+            [
+                ("fontname", self.fontname.get()),
+                ("fontsize", self.fontsize.get().lower()),
+            ]
+        )
 
 
 MainWindow().mainloop()

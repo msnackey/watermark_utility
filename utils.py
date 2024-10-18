@@ -28,8 +28,9 @@ class ImageUtility:
             self.img_og = img
             self.img_og_rs = ImageTk.PhotoImage(self.resize_image(img))
 
-    def make_img_wm(self) -> None:
-        self.img_wm = self.wm_util.make_img_wm(self.img_og)
+    def make_img_wm(self, mode, fontname, fontsize) -> None:
+        self.wm_util.set_font_options(fontname, fontsize, self.img_og)
+        self.img_wm = self.wm_util.make_img_wm(self.img_og, mode)
         self.img_wm_rs = ImageTk.PhotoImage(self.resize_image(self.img_wm))
 
     def resize_image(self, img) -> Image.Image:
@@ -45,15 +46,11 @@ class WatermarkUtility:
         mode: str = "bottom",
     ) -> None:
         self.text = text
-        self.fontname = font
-        self.fontsize = size
-        self.font = ImageFont.truetype(
-            font_manager.findfont(self.fontname), self.fontsize
-        )
+        self.font = ImageFont.truetype(font_manager.findfont(font), size)
         self.mode = mode
-        # print(self.master.master.wm_frame.get_font_options())
 
-    def make_img_wm(self, img) -> None:
+    def make_img_wm(self, img, mode) -> None:
+        self.set_mode(mode)
         if self.mode == "middle":
             img = self.create_wm(img, self.middle_wm(img))
         elif self.mode == "bottom":
@@ -62,9 +59,7 @@ class WatermarkUtility:
             img = self.create_wm(img, self.middle_wm(img))
             img = self.create_wm(img, self.bottom_wm(img))
         else:
-            raise Exception(
-                "Sorry, this mode is not available. Try one of 'middle', 'bottom' or 'both'."
-            )
+            pass
         return img
 
     def create_wm(self, img, txt):
@@ -105,19 +100,19 @@ class WatermarkUtility:
     def wm_text(self, img) -> Image.Image:
         return Image.new("RGBA", img.size, (255, 255, 255, 0))
 
-    def set_font_options(self, fontsize: str, fontname: str, img: Image.Image):
-        if fontsize.lower() == "Small":
+    def set_font_options(self, fontname: str, fontsize: str, img: Image.Image):
+        if fontsize == "small":
+            fontsize = int(img.height / 20)
+        elif fontsize == "medium":
+            fontsize = int(img.height / 15)
+        elif fontsize == "large":
             fontsize = int(img.height / 10)
-        elif fontsize.lower() == "Medium":
-            fontsize = int(img.height / 5)
-        elif fontsize.lower() == "Large":
-            fontsize = int(img.height / 3)
         else:
             raise Exception(
                 "Invalid fontsize given. Try one of 'small', 'medium' or 'large'."
             )
-        self.fontsize = fontsize
-        self.fontname = fontname
+        print(fontsize)
+        self.font = ImageFont.truetype(font_manager.findfont(fontname), fontsize)
 
     def set_mode(self, mode):
         if mode == "middle" or mode == "bottom" or mode == "both":
