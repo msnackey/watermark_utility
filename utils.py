@@ -1,3 +1,4 @@
+import os
 import tkinter.filedialog as fd
 
 from matplotlib import font_manager
@@ -10,6 +11,7 @@ WM_COLOR = (255, 255, 255, 128)
 class ImageUtility:
     def __init__(self) -> None:
         self.wm_util = WatermarkUtility()
+        self.filename = ""
         self.img_og = None
         self.img_og_rs = None
         self.img_wm = None
@@ -24,17 +26,31 @@ class ImageUtility:
                 ("All files", "*.*"),
             ],
         )
+        self.filename = os.path.basename(fp)
         with Image.open(fp).convert("RGBA") as img:
             self.img_og = img
             self.img_og_rs = ImageTk.PhotoImage(self.resize_image(img))
 
-    def make_img_wm(self, mode, fontname, fontsize) -> None:
+    def make_img_wm(self, mode: str, text: str, fontname: str, fontsize: str) -> None:
+        self.wm_util.set_text(text)
         self.wm_util.set_font_options(fontname, fontsize, self.img_og)
         self.img_wm = self.wm_util.make_img_wm(self.img_og, mode)
         self.img_wm_rs = ImageTk.PhotoImage(self.resize_image(self.img_wm))
 
-    def resize_image(self, img) -> Image.Image:
+    def resize_image(self, img: Image.Image) -> Image.Image:
         return ImageOps.contain(img, IMG_SIZE)
+
+    def download_img(self) -> None:
+        fp = fd.asksaveasfilename(
+            title="Save your image...",
+            filetypes=[
+                ("PNG", ("*.png")),
+                ("JPG/JPEG", ("*.jpg", "*.jpeg")),
+                ("All files", "*.*"),
+            ],
+            initialfile=f"wm_{self.filename}",
+        )
+        self.img_wm.save(fp)
 
 
 class WatermarkUtility:
@@ -42,14 +58,14 @@ class WatermarkUtility:
         self,
         text: str = "Watermark Utility",
         font: str = "Arial",
-        size: int = 200,
+        size: int = 20,
         mode: str = "bottom",
     ) -> None:
         self.text = text
         self.font = ImageFont.truetype(font_manager.findfont(font), size)
         self.mode = mode
 
-    def make_img_wm(self, img, mode) -> None:
+    def make_img_wm(self, img: Image.Image, mode: str) -> Image.Image:
         self.set_mode(mode)
         if self.mode == "middle":
             img = self.create_wm(img, self.middle_wm(img))
@@ -62,10 +78,10 @@ class WatermarkUtility:
             pass
         return img
 
-    def create_wm(self, img, txt):
+    def create_wm(self, img: Image.Image, txt: Image.Image) -> Image.Image:
         return Image.alpha_composite(img, txt)
 
-    def middle_wm(self, img, **kwargs) -> Image.Image:
+    def middle_wm(self, img: Image.Image, **kwargs) -> Image.Image:
         try:
             self.set_font_options(kwargs["fontsize"], kwargs["fontname"], img)
         except:
@@ -81,7 +97,7 @@ class WatermarkUtility:
         )
         return txt
 
-    def bottom_wm(self, img, **kwargs) -> Image.Image:
+    def bottom_wm(self, img: Image.Image, **kwargs) -> Image.Image:
         try:
             self.set_font_options(kwargs["fontsize"], kwargs["fontname"], img)
         except:
@@ -97,10 +113,10 @@ class WatermarkUtility:
         )
         return txt
 
-    def wm_text(self, img) -> Image.Image:
+    def wm_text(self, img: Image.Image) -> Image.Image:
         return Image.new("RGBA", img.size, (255, 255, 255, 0))
 
-    def set_font_options(self, fontname: str, fontsize: str, img: Image.Image):
+    def set_font_options(self, fontname: str, fontsize: str, img: Image.Image) -> None:
         if fontsize == "small":
             fontsize = int(img.height / 20)
         elif fontsize == "medium":
@@ -111,13 +127,15 @@ class WatermarkUtility:
             raise Exception(
                 "Invalid fontsize given. Try one of 'small', 'medium' or 'large'."
             )
-        print(fontsize)
         self.font = ImageFont.truetype(font_manager.findfont(fontname), fontsize)
 
-    def set_mode(self, mode):
+    def set_mode(self, mode: str) -> None:
         if mode == "middle" or mode == "bottom" or mode == "both":
             self.mode = mode
         else:
             raise Exception(
                 "Sorry, this mode is not available. Try one of 'middle', 'bottom' or 'both'."
             )
+
+    def set_text(self, text: str) -> None:
+        self.text = text

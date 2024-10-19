@@ -1,6 +1,3 @@
-# TODO Give the option to enter a text
-# TODO Let user download the generated image
-
 import tkinter as tk
 from tkinter import StringVar, ttk
 
@@ -30,14 +27,14 @@ class MainWindow(tk.Tk):
         self.minsize(600, 300)
         self.main_frame = MainFrame(parent=self)
 
-    def adjust_window_size(self, img: ImageTk.PhotoImage):
+    def adjust_window_size(self, img: ImageTk.PhotoImage) -> None:
         self.minsize(
             width=int((2.1 * img.width() + 40)), height=int((1.1 * img.height() + 140))
         )
 
 
 class MainFrame(ttk.Frame):
-    def __init__(self, parent) -> None:
+    def __init__(self, parent: tk.Tk) -> None:
         ttk.Frame.__init__(self, master=parent, padding=10)
         self.grid()
 
@@ -56,6 +53,14 @@ class MainFrame(ttk.Frame):
             ],
         )
         self.upload_btn.grid(column=1, row=0, pady=(0, 10), sticky="NW")
+        self.download_btn = ttk.Button(
+            self,
+            text="Download image",
+            command=lambda: [
+                self.img_util.download_img(),
+            ],
+        )
+        self.download_btn.grid(column=2, row=0, padx=(0, 10), sticky="N")
         self.quit_btn = ttk.Button(self, text="Quit", command=parent.destroy)
         self.quit_btn.grid(column=5, row=0, sticky="NE")
         self.spacer_right = ttk.Label(self, text="")
@@ -71,10 +76,11 @@ class MainFrame(ttk.Frame):
         self.img_wm = ttk.Label(self, image=self.img_util.img_wm_rs)
         self.img_wm.grid(column=4, columnspan=2, row=2)
 
-    def make_img_wm(self, mode) -> None:
+    def make_img_wm(self, mode: str) -> None:
+        wm_text = self.wm_frame.get_wm_text()
         font_options = self.wm_frame.get_font_options()
         self.img_util.make_img_wm(
-            mode, font_options["fontname"], font_options["fontsize"]
+            mode, wm_text, font_options["fontname"], font_options["fontsize"]
         )
         self.update_img_wk()
 
@@ -86,15 +92,24 @@ class MainFrame(ttk.Frame):
 
 
 class WatermarkFrame(ttk.Frame):
-    def __init__(self, parent) -> None:
+    def __init__(self, parent: ttk.Frame) -> None:
         ttk.Frame.__init__(self, master=parent)
         self.grid()
 
-        # Row 0
+        # Row
         self.watermark_label = ttk.Label(self, text="Watermark settings")
         self.watermark_label.grid(column=0, row=0)
 
-        # Row 1
+        # Row
+        self.wm_text_label = ttk.Label(self, text="Watermark text:")
+        self.wm_text_label.grid(column=0, row=1)
+        self.wm_text = StringVar()
+        self.wm_text_entry = ttk.Entry(
+            self, width=WM_BUTTON_WIDTH, textvariable=self.wm_text
+        )
+        self.wm_text_entry.grid(column=1, row=1, pady=(0, 10))
+
+        # Row
         self.fontname = StringVar()
         self.fontname_drop = ttk.Combobox(
             self,
@@ -102,7 +117,7 @@ class WatermarkFrame(ttk.Frame):
             textvariable=self.fontname,
             values=FONT_OPTIONS,
         )
-        self.fontname_drop.grid(column=0, row=1)
+        self.fontname_drop.grid(column=0, row=2)
         self.fontname_drop.current(1)
         self.watermark1_btn = ttk.Button(
             self,
@@ -110,16 +125,16 @@ class WatermarkFrame(ttk.Frame):
             width=WM_BUTTON_WIDTH,
             command=lambda: self.master.make_img_wm("middle"),
         )
-        self.watermark1_btn.grid(column=1, row=1)
+        self.watermark1_btn.grid(column=1, row=2)
         self.watermark2_btn = ttk.Button(
             self,
             text="Both",
             width=WM_BUTTON_WIDTH,
             command=lambda: self.master.make_img_wm("both"),
         )
-        self.watermark2_btn.grid(column=2, row=1, padx=(6, 0))
+        self.watermark2_btn.grid(column=2, row=2, padx=(6, 0))
 
-        # Row 2
+        # Row
         self.fontsize = StringVar()
         fontsize_options = ["Small", "Medium", "Large"]
         self.wm_font_drop = ttk.Combobox(
@@ -128,7 +143,7 @@ class WatermarkFrame(ttk.Frame):
             textvariable=self.fontsize,
             values=fontsize_options,
         )
-        self.wm_font_drop.grid(column=0, row=2)
+        self.wm_font_drop.grid(column=0, row=3)
         self.wm_font_drop.current(1)
         self.watermark3_btn = ttk.Button(
             self,
@@ -136,7 +151,7 @@ class WatermarkFrame(ttk.Frame):
             width=WM_BUTTON_WIDTH,
             command=lambda: self.master.make_img_wm("bottom"),
         )
-        self.watermark3_btn.grid(column=1, row=2)
+        self.watermark3_btn.grid(column=1, row=3)
 
     def get_font_options(self) -> dict:
         return dict(
@@ -145,6 +160,9 @@ class WatermarkFrame(ttk.Frame):
                 ("fontsize", self.fontsize.get().lower()),
             ]
         )
+
+    def get_wm_text(self) -> str:
+        return self.wm_text.get()
 
 
 MainWindow().mainloop()
